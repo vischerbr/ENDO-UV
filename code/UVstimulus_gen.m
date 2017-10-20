@@ -1,3 +1,5 @@
+% This function generates the square wave intensity profile that our
+% adaption model uses as a stimulus.  
 function [UVstimulus] = UVstimulus_gen(duty, period, reps) % unitless inputs
 
 UVstimulus = zeros(1, round(period)); % initialize to off

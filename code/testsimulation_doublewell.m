@@ -1,28 +1,12 @@
-% #NOTES: currently changing wrong k. Need to alter k of barrier, not k of
-% #second well. Moreover, first pass time should only depend on k1k2
-% #product, so i can probably just iterate over one and fix the other. check
-% #to make sure that this works by fixing the first and iterating the other
-% #direction
-
-% #new note: spline is almost certainly incorrect. arbitrary values are
-% #causing problems. probably a good idea to run this stuff by bo, maybe he
-% #can help fix the spline
-%
-% use a phi - 4 potential to model double well - ax^2  + bx^4, average
-% first pass time between multiple runs. look up stochastic resonance -
-% driving in a double well potential causes odd features in the first
-% passage times! Try to simulate a driven stocastic system, check how the
-% driving frequency changes the mean passage time, or check for periodic
-% motion of the particle. 
-
-% note - for double well, both curvature constants are controlled by the
-% same paramater, the scaling on the the quadratic term. implementation NOT
-% complete in loops, beware
+% Main script file. This script generates a UV intensity spectrum to be
+% passed to the main simulation, which dynamically simulates particles in a double well
+% potential acting under thermal effects and a UV driving force.
 
 pars.nothing = 1;
 pars.kbt = .8;
 pars.gamma = 1;
 pars.iters = 100000;
+pars.samples = 20;
 pars.framerate = 100;
 pars.dt = .01;
 pars.duty = .95;
@@ -34,8 +18,11 @@ pars.gamma = 0.1;
 pars.delta = .01;
 pars.inhib_threshhold = 1.0;
 
+% Generate the UV force profile
 
-UVprofile = forceprofile_gen(pars);
+UVprofile = forceprofile_gen(pars); 
+
+% Simulate particles in the double well under the generated force  
 
 [vcaltotal,firstpasstimes,potential] = model_virtualdatagen_doublewell(UVprofile,pars);
 %meanvcal = mean(vcaltotal);
