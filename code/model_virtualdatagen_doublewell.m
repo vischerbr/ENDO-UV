@@ -4,22 +4,15 @@
 % desired calculations are the particle trajectories under these forces and
 % the times at which each particle first passes the barrier.
 function [vcaltotal,firstpasstimes,potentialspline] = model_virtualdatagen_doublewell(UVprofile,pars)
-%UVprofile in seconds
 
-
-
-maxruns = 1;
-samplegoal =10;
-
-totalfirstpass = [];
-
+samples=2;
 dt = 0.01;
 framerate = 100;
 kbt = 1.5;
 
 % Drag coeffecient. Appears to have little impact on 
 % simulation, kept for dimensional reasoning.
-damping = 1; 
+damping = 1.0; 
 iters=100000;
 
 % Read in paramters.
@@ -29,7 +22,8 @@ if(isfield(pars,'kbt'))
     kbt = pars.kbt;
 end
 
-% Position sampling frequency, unitless.
+% Position sampling frequency, unitless. Should be integer multiple of
+% iterations.
 if(isfield(pars,'framerate')) 
     framerate = pars.framerate;
 end
@@ -62,20 +56,18 @@ xmin1 = 0;
 xmax = 70;
 xmin2 = 80;
 
-totalsimlen = iters;%unitless
-
 % Output arrays
-vcaltotal = [];
-firstpasstimes = [];
+vcaltotal = zeros(samples, iters/framerate); % spatial sampling should be position vs. time
+firstpasstimes = zeros(1, samples);
 
 % Construct the potential profile and the force due to the double well.
 potentialspline = doublewellpotential_gen(peakheight,secondwellbottom,k1,k2,k3,xmin1,xmin2,xmax);
 cellforcespline = fnder(potentialspline);
 
-samplesize = 0;
+samplesize = 1;
 
 % Do multiple trials for each iteration, average
-while samplesize < samplegoal
+while samplesize <= samples
 
     % Initialization, 
     tnow = 0;
@@ -85,77 +77,50 @@ while samplesize < samplegoal
     % track framerate
     tempcount = 0;
 
-    %
-
-    %the effective time of the force
-    %tforce = 0;
-
+  
     % boolean first pass vcaltotacheck 
     firstpass = 0;
 
     % initialize trajectory array
-    vcal = [];
-    % do the simulation
+    vcal = zeros(1,iters/framerate);
+
     i=1;
     while i<=iters
 
+        % Three forces act on the particle: the force from the incident UV
+        % light; the force from the doublewell potential; and thermal
+        % noise.
         UVforce = UVprofile(i);
-%             if UVforce>1e-2
-%                 tforce = tforce+UVforce*tforcegrowrate*dt;
-%             else
-%                 tforce = tforce-tforcedecayrate*dt;
-%                 tforce = max([tforce,0]);
-%             end
-% 
-% 
-%             if tforce > tdecay
-%                 decayfac = exp((tforce-tdecay)/tdecaytimescale);
-%                 UVforce = UVforce/decayfac;
-% 
-%             end
-
-        %approximately 2*ksecondwell(xnow-1) within second well
         cellforce = fnval(cellforcespline,xnow);
 
         %something like Ornstein-Uhlenbeck process
         dx = (UVforce-cellforce)*(dt/damping)+sqrt(2*kbt)*randn(1,1)*sqrt(dt/damping);
 
-         %activate force decay%
-    %    if((xnow<=Xb) && ((xnow+dx)>Xb))    
-    %        decayflag = 1; 
-    %    end
-
-         %reset force decay
-    %    if((xnow>=Xa) && ((xnow+dx)<Xa))
-    %        decayflag = 0;
-    %        tdecay = 0;
-    %    end 
-
-        % check for first pass
+        % Check to see if the particle has passed the barrier yet
 
         if xnow> xmax && firstpass == 0
             firstpass = 1;
-            firstpasstimes = [firstpasstimes, i*dt];
+            firstpasstimes(samplesize) =  i*dt;
         end
 
         xnow = xnow+dx;
         i = i+1;
         tempcount = tempcount+1;
 
+        % Store trajectories every framerate of steps
         if(tempcount == framerate)
-            vcal = [vcal,xnow];
+            vcal(floor(i/framerate)) = xnow;
             tempcount = 0;
-
         end
 
     end
+    
+    % If the particle failed to get over the barrier during the simulation,
+    % store something noticeable.
     if firstpass == 0
-        firstpasstimes = [firstpasstimes, 0]
+        firstpasstimes(samplesize) = -1;
     end
+    vcaltotal(samplesize,:) = vcal;
     samplesize = samplesize+1
-    vcaltotal = [vcaltotal; vcal];
 end
-totalfirstpass = [totalfirstpass;firstpasstimes]
-totalruns = totalruns+1;
-
 end

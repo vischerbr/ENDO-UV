@@ -4,9 +4,8 @@
 
 pars.nothing = 1;
 pars.kbt = .8;
-pars.gamma = 1;
 pars.iters = 100000;
-pars.samples = 20;
+pars.samples = 2;
 pars.framerate = 100;
 pars.dt = .01;
 pars.duty = .95;
